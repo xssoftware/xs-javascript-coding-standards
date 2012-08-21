@@ -1,0 +1,2 @@
+xs-javascript-coding-standards
+==============================
