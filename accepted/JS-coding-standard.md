@@ -70,6 +70,10 @@ Make comments meaningful. Focus on what is not immediately visible. Don't waste 
 
 Generally use line comments. Save block comments for formal documentation and for commenting out.
 
+### Comments Syntax
+
+Use [JSDoc](http://code.google.com/p/jsdoc-toolkit/). The JSDoc syntax is based on JavaDoc . Many tools extract metadata from [JSDoc](http://code.google.com/p/jsdoc-toolkit/) comments to perform code validation and optimizations. These comments must be well-formed.
+
 Variable Declarations
 ---------------------
 
@@ -88,6 +92,39 @@ It is preferred that each variable be given its own line and comment. They shoul
 JavaScript does not have block scope, so defining variables in blocks can confuse programmers who are experienced with other C family languages. Define all variables at the top of the function.
 
 Use of global variables should be minimized. Implied global variables should never be used.
+
+Constants
+---------
+
+Use NAMES_LIKE_THIS for constants. Use @const where appropriate. Never use the const keyword.
+
+For simple primitive value constants, the naming convention is enough.
+
+```js
+/**
+ * The number of seconds in a minute.
+ * @type {number}
+ */
+goog.example.SECONDS_IN_A_MINUTE = 60;
+```
+
+For non-primitives, use the @const annotation.
+
+```js
+/**
+ * The number of seconds in each of the given units.
+ * @type {Object.<number>}
+ * @const
+ */
+goog.example.SECONDS_TABLE = {
+  minute: 60,
+  hour: 60 * 60
+  day: 60 * 60 * 24
+}
+```
+
+This allows the compiler to enforce constant-ness.
+As for the const keyword, Internet Explorer doesn't parse it, so don't use it.
 
 Function Declarations
 ---------------------
@@ -183,6 +220,16 @@ var collection = (function () {
     };
 }());
 ```
+Method Definitions
+------------------
+
+While there are several methods for attaching methods and properties to a constructor, the preferred style is:
+
+```js
+Foo.prototype.bar = function() {
+  /* ... */
+};
+```
 
 Names
 -----
@@ -196,6 +243,8 @@ Most variables and functions should start with a lower case letter.
 Constructor functions which must be used with the new prefix should start with a capital letter. JavaScript issues neither a compile-time warning nor a run-time warning if a required new is omitted. Bad things can happen if new is not used, so the capitalization convention is the only defense we have.
 
 Global variables should be in all caps. (JavaScript does not have macros or constants, so there isn't much point in using all caps to signify features that JavaScript doesn't have.)
+
+In general, use functionNamesLikeThis, variableNamesLikeThis, ClassNamesLikeThis, EnumNamesLikeThis, methodNamesLikeThis, and SYMBOLIC_CONSTANTS_LIKE_THIS.
 
 Statements
 ----------
@@ -341,6 +390,17 @@ Avoid use of the continue statement. It tends to obscure the control flow of the
 
 The with statement should not be used.
 
+Using with clouds the semantics of your program. Because the object of the with can have properties that collide with local variables, it can drastically change the meaning of your program. For example, what does this do?
+
+```js
+with (foo) {
+  var x = 3;
+  return x;
+}
+```
+
+Answer: anything. The local variable x could be clobbered by a property of foo and perhaps it even has a setter, in which case assigning 3 could cause lots of other code to execute. Don't use with.
+
 ### Whitespace
 
 Blank lines improve readability by setting off sections of code that are logically related.
@@ -420,3 +480,111 @@ so that the + + is not misread as ++.
 The eval function is the most misused feature of JavaScript. Avoid it.
 
 eval has aliases. Do not use the Function constructor. Do not pass strings to setTimeout or setInterval.
+
+### this
+
+Only in object constructors, methods, and in setting up closures
+The semantics of this can be tricky. At times it refers to the global object (in most places), the scope of the caller (in eval), a node in the DOM tree (when attached using an event handler HTML attribute), a newly created object (in a constructor), or some other object (if function was call()ed or apply()ed).
+
+Because this is so easy to get wrong, limit its use to those places where it is required:
+- in constructors
+- in methods of objects (including in the creation of closures)
+
+### Associative Arrays
+Never use Array as a map/hash/associative array
+Associative Arrays are not allowed... or more precisely you are not allowed to use non number indexes for arrays. If you need a map/hash use Object instead of Array in these cases because the features that you want are actually features of Object and not of Array. Array just happens to extend Object (like any other object in JS and therefore you might as well have used Date, RegExp or String).
+
+### Multiline string literals
+
+Do not use multiline string literals:
+
+```js
+var myString = 'A rather long string of English text, an error message \
+                actually that just keeps going and going -- an error \
+                message to make the Energizer bunny blush (right through \
+                those Schwarzenegger shades)! Where was I? Oh yes, \
+                you\'ve got an error and all the extraneous whitespace is \
+                just gravy.  Have a nice day.';
+```
+
+The whitespace at the beginning of each line can't be safely stripped at compile time; whitespace after the slash will result in tricky errors; and while most script engines support this, it is not part of ECMAScript.
+
+Use string concatenation instead:
+
+```js
+var myString = 'A rather long string of English text, an error message ' +
+    'actually that just keeps going and going -- an error ' +
+    'message to make the Energizer bunny blush (right through ' +
+    'those Schwarzenegger shades)! Where was I? Oh yes, ' +
+    'you\'ve got an error and all the extraneous whitespace is ' +
+    'just gravy.  Have a nice day.';
+```
+
+### Array and Object literals
+
+Use Array and Object literals instead of Array and Object constructors.
+
+Array constructors are error-prone due to their arguments.
+
+```js
+// Length is 3.
+var a1 = new Array(x1, x2, x3);
+
+// Length is 2.
+var a2 = new Array(x1, x2);
+
+// If x1 is a number and it is a natural number the length will be x1.
+// If x1 is a number but not a natural number this will throw an exception.
+// Otherwise the array will have one element with x1 as its value.
+var a3 = new Array(x1);
+
+// Length is 0.
+var a4 = new Array();
+```
+
+Because of this, if someone changes the code to pass 1 argument instead of 2 arguments, the array might not have the expected length.
+
+To avoid these kinds of weird cases, always use the more readable array literal.
+
+```js
+var a = [x1, x2, x3];
+var a2 = [x1, x2];
+var a3 = [x1];
+var a4 = [];
+```
+
+Object constructors don't have the same problems, but for readability and consistency object literals should be used.
+
+```js
+var o = new Object();
+
+var o2 = new Object();
+o2.a = 0;
+o2.b = 1;
+o2.c = 2;
+o2['strange key'] = 3;
+```
+
+Should be written as:
+
+```js
+var o = {};
+
+var o2 = {
+  a: 0,
+  b: 1,
+  c: 2,
+  'strange key': 3
+};
+```
+### Modifying prototypes of builtin objects
+
+Modifying builtins like Object.prototype and Array.prototype are strictly forbidden. Modifying other builtins like Function.prototype is less dangerous but still leads to hard to debug issues in production and should be avoided.
+
+### Prefer ' over "
+
+For consistency single-quotes (') are preferred to double-quotes ("). This is helpful when creating strings that include HTML:
+
+```js
+var msg = 'This is some HTML';
+```
